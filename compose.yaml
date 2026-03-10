@@ -1,0 +1,7 @@
+﻿services:
+  event-sourcing:
+    image: event-sourcing
+    build:
+      context: .
+      dockerfile: event-sourcing/Dockerfile
+
