@@ -8,6 +8,7 @@ public class BankWorkerSimulator
 {
     public Task RunAsync()
     {
+        Tracer.Verbose = true;
         var eventStore = new EventStore();
         var projection = new AccountBalanceProjection(eventStore); // odebira eventy od ted
         var openAccountHandler = new ProcessAccountOpenedHandler(eventStore);

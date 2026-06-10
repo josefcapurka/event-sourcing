@@ -32,6 +32,7 @@ public class EventStore
         if (@event.Version != expectedVersion)
             throw new ConcurrencyException(@event.AggregateId, expectedVersion, @event.Version);
 
+        Tracer.Log($"EventStore.Append: {{{@event.GetType().Name}}} v{@event.Version} → stored (total={list.Count + 1})");
         list.Add(@event);
         EventAppended?.Invoke(@event);
     }

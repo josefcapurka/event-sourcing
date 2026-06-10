@@ -1,4 +1,5 @@
 using event_sourcing.Domain.Events;
+using event_sourcing.Infrastructure;
 
 namespace event_sourcing.Domain.Objects;
 
@@ -36,10 +37,12 @@ public sealed class BankAccount
     {
         var account = new BankAccount();
 
+        Tracer.Log($"Replay: {events.Count} event(s) → rebuild state from scratch");
         foreach (var @event in events)
         {
-            account.Apply(@event);
+            account.Apply(@event, fromReplay: true);
         }
+        Tracer.Log($"Replay done → Balance={account.Balance}, Version={account.Version}, IsClosed={account.IsClosed}");
 
         return account;
     }
@@ -115,25 +118,31 @@ public sealed class BankAccount
 
     private void Raise(Event @event)
     {
+        Tracer.Log($"Raise: {{{@event.GetType().Name}}} v{@event.Version} → Apply + add to UncommittedEvents");
         Apply(@event);
         UncommitedEvents.Add(@event);
     }
 
-    private void Apply(Event @event)
+    private void Apply(Event @event, bool fromReplay = false)
     {
+        var prefix = fromReplay ? "  [replay]" : "  [new]";
         switch (@event)
         {
             case AccountOpened opened:
+                Tracer.Log($"{prefix} Apply AccountOpened → Id={opened.AggregateId}", indent: 1);
                 Id = opened.AggregateId;
                 Balance = 0;
                 break;
             case MoneyDeposited deposited:
+                Tracer.Log($"{prefix} Apply MoneyDeposited +{deposited.Amount} {deposited.Currency} → Balance {Balance} → {Balance + deposited.Amount}", indent: 1);
                 Balance += deposited.Amount;
                 break;
             case MoneyWithdrawn withdrawn:
+                Tracer.Log($"{prefix} Apply MoneyWithdrawn -{withdrawn.Amount} {withdrawn.Currency} → Balance {Balance} → {Balance - withdrawn.Amount}", indent: 1);
                 Balance -= withdrawn.Amount;
                 break;
             case AccountClosed:
+                Tracer.Log($"{prefix} Apply AccountClosed → IsClosed=true", indent: 1);
                 IsClosed = true;
                 break;
         }
