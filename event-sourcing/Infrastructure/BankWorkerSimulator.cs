@@ -9,6 +9,7 @@ public class BankWorkerSimulator
     public Task RunAsync()
     {
         var eventStore = new EventStore();
+        var projection = new AccountBalanceProjection(eventStore); // odebira eventy od ted
         var openAccountHandler = new ProcessAccountOpenedHandler(eventStore);
         var depositHandler = new ProcessMoneyDepositRequestHandler(eventStore);
         var withdrawHandler = new ProcessMoneyWithdrawRequestHandler(eventStore);
@@ -51,7 +52,17 @@ public class BankWorkerSimulator
         catch (InvalidOperationException ex)
         {
             Console.WriteLine($"Vklad odmitnut: {ex.Message}");
+            Console.WriteLine();
         }
+
+        // cteni z read modelu - zadny replay, jen lookup
+        Console.WriteLine("--- read model (projekce) ---");
+        Console.WriteLine($"  {projection.Get(accountId)}");
+
+        // rebuild - smaz a znovu postav z event logu, musi vyjit stejne
+        projection.Rebuild(eventStore);
+        Console.WriteLine("--- read model po rebuildu z event logu ---");
+        Console.WriteLine($"  {projection.Get(accountId)}");
 
         return Task.CompletedTask;
     }

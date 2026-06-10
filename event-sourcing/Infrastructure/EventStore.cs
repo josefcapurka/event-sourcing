@@ -6,10 +6,18 @@ public class EventStore
 {
     private Dictionary<Guid, List<Event>> Events = new();
 
+    // odber pro projekce - v realu message bus / subscription na event store
+    public event Action<Event>? EventAppended;
+
     public List<Event> GetEvents(Guid aggregateId)
     {
         // kopie - interni list nesmi jit zmutovat zvenci ("prepsani historie")
         return Events.TryGetValue(aggregateId, out var list) ? [.. list] : [];
+    }
+
+    public List<Event> GetAllEvents()
+    {
+        return Events.Values.SelectMany(list => list).ToList();
     }
 
     public void Append(Event @event)
@@ -21,6 +29,7 @@ public class EventStore
         }
 
         list.Add(@event);
+        EventAppended?.Invoke(@event);
     }
 
     public void Append(List<Event> events)
