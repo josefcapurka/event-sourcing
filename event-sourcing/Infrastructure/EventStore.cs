@@ -28,6 +28,10 @@ public class EventStore
             Events[@event.AggregateId] = list;
         }
 
+        var expectedVersion = list.Count + 1;
+        if (@event.Version != expectedVersion)
+            throw new ConcurrencyException(@event.AggregateId, expectedVersion, @event.Version);
+
         list.Add(@event);
         EventAppended?.Invoke(@event);
     }
