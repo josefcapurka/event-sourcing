@@ -44,10 +44,68 @@ public sealed class BankAccount
         return account;
     }
 
-    public void Deposit()
+    public void Deposit(decimal amount, string currency)
     {
-        // krok 3: kontrola invariantu (ucet neni zavreny, castka > 0) -> Raise(new MoneyDeposited(...))
-        throw new NotImplementedException();
+        if (IsClosed)
+        {
+            throw new InvalidOperationException("Cannot deposit to a closed account.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Deposit amount must be positive.");
+        }
+
+        Raise(new MoneyDeposited(
+            EventId: Guid.NewGuid(),
+            AggregateId: Id,
+            Version: Version + 1,
+            Account: Id,
+            Amount: amount,
+            Currency: currency,
+            DepositedAt: DateTime.UtcNow));
+    }
+
+    public void Withdraw(decimal amount, string currency)
+    {
+        if (IsClosed)
+        {
+            throw new InvalidOperationException("Cannot withdraw from a closed account.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Withdrawal amount must be positive.");
+        }
+
+        if (Balance - amount < 0)
+        {
+            throw new InvalidOperationException($"Insufficient funds: balance {Balance}, requested {amount}.");
+        }
+
+        Raise(new MoneyWithdrawn(
+            EventId: Guid.NewGuid(),
+            AggregateId: Id,
+            Version: Version + 1,
+            Account: Id,
+            Amount: amount,
+            Currency: currency,
+            WithdrawnAt: DateTime.UtcNow));
+    }
+
+    public void Close()
+    {
+        if (IsClosed)
+        {
+            throw new InvalidOperationException("Account is already closed.");
+        }
+
+        Raise(new AccountClosed(
+            EventId: Guid.NewGuid(),
+            AggregateId: Id,
+            Version: Version + 1,
+            Account: Id,
+            ClosedAt: DateTime.UtcNow));
     }
 
     public void ClearUncommitedEvents()

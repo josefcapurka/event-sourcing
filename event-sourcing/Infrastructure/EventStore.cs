@@ -8,12 +8,19 @@ public class EventStore
 
     public List<Event> GetEvents(Guid aggregateId)
     {
-        return Events.TryGetValue(aggregateId, out var list) ? list : [];
+        // kopie - interni list nesmi jit zmutovat zvenci ("prepsani historie")
+        return Events.TryGetValue(aggregateId, out var list) ? [.. list] : [];
     }
 
     public void Append(Event @event)
     {
-        Events[@event.AggregateId].Add(@event);
+        if (!Events.TryGetValue(@event.AggregateId, out var list))
+        {
+            list = [];
+            Events[@event.AggregateId] = list;
+        }
+
+        list.Add(@event);
     }
 
     public void Append(List<Event> events)
